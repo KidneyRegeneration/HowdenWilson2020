@@ -1,0 +1,171 @@
+---
+title: "BulkRNA-Seq"
+author: "Sean Wilson"
+date: "2020-11-12"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+We generated a number of Bulk RNA-Seq samples to analyse the transcriptomes of cell populations and cultures from this study. <br>
+<br>
+In the first instance, we used a GATA3:mCherry reporter iPS cell line to generate organoids. These organoids were dissociated and stained with a conjugated EPCAM-Fluor488 antibody before being FACS sorted. We collected the various populations and Bulk RNA-Sequenced them. Ureteric Epithelium cultures generated from the GATA3+/EPCAM+ cells cultured in UE supporting conditions were also collected and sequenced.<br>
+<br>
+These samples are "batch 1".
+
+```{r setup, warning=FALSE, results='hide', echo=FALSE}
+library(edgeR)
+library(limma)
+library(RColorBrewer)
+library(NMF)
+library(Homo.sapiens)
+library(org.Hs.eg.db)
+library(Glimma)
+library(gplots)
+#source("general_r_functions.R")
+nmf.options(grid.patch=FALSE)
+library(tidyverse)
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+
+projectDir <- "/group/kidn1/RNAseq/RNAseq_Jessica_Sara_CollDuct/CollDuct_RNAseq/"
+dataDir <- projectDir
+```
+
+## Preparing the data
+
+```{r}
+raw <- read.csv(file=paste0("/group/kidn1/Group-Little_MCRI/Manuscripts/In Progress/Collecting duct manuscript Howden/GEO_submission/processed/counts_batch1.txt"), sep=",", row.names = 1)
+
+targets <- data.frame(ID = colnames(raw), 
+                      Group = c("UEculture", "UEculture", "UEculture", "mCh_EPCAM", "mCh_EPCAM", "mCh_EPCAM",
+                                "mCh_only", "mCh_only", "mCh_only", "EPCAM_only", "EPCAM_only", "EPCAM_only"))
+targets
+```
+
+Create a DGElist object and add gene annotation information to the data.
+
+```{r}
+dge <- DGEList(counts=raw, genes=rownames(raw), group=targets$Group)
+colnames(dge) <- paste(targets$ID,targets$Group,sep=".")
+ann <- AnnotationDbi::select(org.Hs.eg.db, keys=rownames(dge), keytype = "SYMBOL", 
+              columns=c("ENTREZID","SYMBOL","GENENAME"))
+ann <- ann[!duplicated(ann$SYMBOL),]
+dge$genes <- ann[match(rownames(dge),ann$SYMBOL),]
+dge$genes$LENGTH <- raw$Length[rownames(raw) %in% rownames(dge)]
+```
+
+Visualise library sizes
+
+```{r, fig.width=10, fig.height=6}
+pal = c("green", "blue", "red", "black")  
+
+par(mfrow=c(1,2))
+barplot(dge$samples$lib.size, names=targets$ID, las=2, cex.names=0.8,
+        ylab="Library size (cpm)", col = pal[factor(targets$Group)],
+        cex.axis=0.5)
+
+plotMDS(dge, col=pal[factor(targets$Group)], gene.selection = "common",
+        labels=targets$ID)
+legend("topright", legend=levels(factor(targets$Group)), text.col=pal)
+
+```
+
+Remove genes with less than 1 count per million in at least 3 samples. Then normalise using TMM.
+
+```{r}
+isexpr <- rowSums(cpm(dge) > 1) >= 3
+y <- dge[isexpr,,keep.lib.sizes=FALSE]
+y <- calcNormFactors(y)
+```
+
+```{r}
+# Get log2 counts per million
+logcounts <- cpm(y,log=TRUE)
+# Check distributions of samples using boxplots
+boxplot(logcounts, xlab="", ylab="Log2 counts per million",las=2)
+# Let's add a blue horizontal line that corresponds to the median logCPM
+abline(h=median(logcounts),col="blue")
+title("Boxplots of logCPMs")
+```
+
+```{r}
+# We estimate the variance for each row in the logcounts matrix
+var_genes <- apply(logcounts, 1, var)
+
+# Get the gene names for the top 500 most variable genes
+select_var <- names(sort(var_genes, decreasing=TRUE))[1:500]
+
+# Subset logcounts matrix
+highly_variable_lcpm <- logcounts[select_var,]
+dim(highly_variable_lcpm)
+
+
+## Get some nicer colours
+mypalette <- brewer.pal(11,"RdYlBu")
+morecols <- colorRampPalette(mypalette)
+# Set up colour vector for celltype variable
+
+
+# Plot the heatmap
+heatmap.2(highly_variable_lcpm,col=rev(morecols(50)),trace="none", main="Top 500 most variable genes across samples")
+```
+
+## Statistical analysis
+
+The differential expression analysis is performed using `voom` and *limma*. The `voom` (Law et al. 2014) function is used on the normalized counts to robustly estimate the mean-variance relationship and generate precision weights for each observation. Gene-wise linear models are then fitted to the voom-transformed log2 CPM to determine differences in gene expression.
+
+Statistically significant differentially expressed genes are identified using empirical Bayes moderated t-tests (Smyth 2005), allowing for a mean-variance trend and performing robust empirical Bayes shrinkage of the gene-wise variances to protect against hypervariable genes (Phipson, Lee, et al. 2016). P-values are adjusted for false discovery rate using the Benjamini-Hochberg method (Benjamini & Hochberg 1995). 
+
+Set up the design matrix and apply voom to the counts.
+
+```{r}
+# set up the design matrix and voom the data
+design <- model.matrix(~0+factor(targets$Group))
+colnames(design) <- c(levels(factor(targets$Group)))
+v <- voom(y, design, plot=TRUE)
+```
+
+Fit the linear model.
+
+```{r}
+# run linear model fit to identify genes that are DE between the groups
+fit <- lmFit(v, design)
+c.matrix <- makeContrasts(ep.vs.non.ep=0.5*(EPCAM_only+mCh_EPCAM)-mCh_only,
+                          GATA3.ep.vs.neg.ep=mCh_EPCAM-EPCAM_only,
+                          Mat_CD_org.vs.mCh.Ep=UEculture-mCh_EPCAM,
+                          levels=design)
+fitc <- contrasts.fit(fit, c.matrix)
+fit2 <- eBayes(fitc, trend=TRUE, robust=TRUE)
+```
+
+Summarise the numbers of differentially expressed genes for each comparison.
+
+```{r}
+# set cutoffs and summarise number of DE genes for each comparison
+dt <- decideTests(fit2)
+colnames(dt@.Data) <- c("ch+/Ep+ org vs ch+", "ch+/Ep+ org vs Ep+", "ch+/Ep+ org vs ch+/Ep+ UE")
+vennDiagram(dt, circle.col = c("green", "red", "blue"), include = c("up", "down"), counts.col = c("red", "blue"), cex = 1, lwd=2, mar = c(0,0,0,0))
+```
+
+
+As there are many differentially expressed genes in the original analysis, we will also test relative to a threshold (TREAT) of absolute log2 fold change > 1.
+
+```{r}
+fit.treat <- treat(fitc, trend=TRUE, robust=TRUE, lfc=1)
+```
+
+Summarise the numbers of differentially expressed genes for each comparison. There are fewer DE genes from the TREAT analysis.
+
+```{r}
+# set cutoffs and summarise number of DE genes for each comparison
+dtt <- decideTests(fit.treat)
+colnames(dtt@.Data) <- c("ch+/Ep+ org vs ch+", "ch+/Ep+ org vs Ep+", "ch+/Ep+ org vs ch+/Ep+ UE")
+vennDiagram(dtt, circle.col = c("green", "red", "blue"), include = c("up", "down"), counts.col = c("red", "blue"), cex = 1, lwd = 2, mar = c(0,0,0,0))
+```
+
+## Gene set scores
+
+We generated from the human fetal kidney single cell data Gene Sets that we could use to identify each population within the HFK and ask how similar each sample was to 

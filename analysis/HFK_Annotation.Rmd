@@ -1,0 +1,90 @@
+---
+title: "HFK scRNA-Seq annotation"
+author: "Sean Wilson"
+date: "2020-11-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+This code relates to Figure 1 of Howden, Wilson et al. 2020 <br>
+<br>
+Figure 1 described the annotation of a human fetal kidney dataset published with a full annotation for the first time in this manuscript. <br>
+<br>
+There were two samples: **96 days old MALE** and **108 days old FEMALE**. These were originally generated in the Spence lab by Emily Halloway, with the original publication focussing on the endothelium which can be seen in [Holloway et al. 2020](https://www.sciencedirect.com/science/article/abs/pii/S1534580720305980) <br>
+<br>
+The analysis is performed largely following the [Satija Lab protocol](https://satijalab.org/seurat/v3.0/pancreas_integration_label_transfer.html) <br>
+<br>
+
+
+```{r setup}
+library(tidyverse)
+library(Seurat)
+library(patchwork)
+library(here)
+library(plotly)
+source("code/functions.R")
+options(future.globals.maxSize = Inf)
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.width = 12, fig.height = 9)
+```
+
+This loads the Seurat object saved in my working folder, to get this same object you can download the raw data and metadata from [GSE161255](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE161255) and recreate the object.
+
+```{r}
+load(file = here::here("data/Holloway2020.rda"))
+```
+
+We can visualise the object in either 2D or 3D. The labels are reorganised into a random order to make the colours on the graph more discernable.
+
+```{r, fig.width=12, fig.height=6}
+DimPlot(hfk, group.by = "IdentityRandom", reduction = "umap", label = T, repel = T)
+```
+
+
+```{r, echo=F, error=F, warning=FALSE}
+ plot_ly(data.frame(cell = colnames(hfk),
+                    umap1 = hfk@reductions$umap3d@cell.embeddings[,1],
+                    umap2 = hfk@reductions$umap3d@cell.embeddings[,2],
+                    umap3 = hfk@reductions$umap3d@cell.embeddings[,3]),
+         x = ~umap1, 
+         y = ~umap2,
+         z = ~umap3, type="scatter3d", mode = 'markers',
+         marker = list(opacity = 0.7, size=2),
+         color = ~factor(hfk$IdentityRandom))
+        
+```
+
+## Clustering
+
+The kidney is a complex organ with many cell types generated within a number of distinct cell lineages. Due to this, the clearest way to use clustering on this dataset is to use a low resolution to get the lineage information, then go into each of these populations to identify more distinct cell identities. 
+
+The first clustering resolution allowed for us to classify the cell lineages within the kidney
+
+```{r, fig.height=12}
+DimPlot(hfk, group.by = "Broad_Annotation") / 
+  (SWDP.vir(hfk, features = c("XIST", "HBA2", "SOX17", "CD14", "CENPF", "PDGFRB",
+                         "DCN", "FOXD1", "UPK2", "TACSTD2", "AQP2",
+                         "SOX9", "RET", "GATA3", "TMEM52B", "SLC12A3",
+                         "SLC12A1", "UMOD", "MAFB", "NPHS1", "CLDN1",
+                         "CAV1", "HNF4A", "CUBN", "LRP2", "HNF1B",
+                         "JAG1", "WNT4", "LEF1", "LYPD1", "DAPL1",
+                         "CITED1"), group.by = "Broad_Annotation", col.max = 10))
+```
+
+The large clusters can be easily classified based on their gene expression profiles. While we can distinguish between Nephron Progenitors, Distal Nephron, Proximal Nephron and Podocytes with this resolution of clustering, for the paper we called these all as Nephron and denoted all subclusters with the "N." prefix. Ureteric Epithelium had a "U." prefix, the Stroma with "S." <br>
+<br>
+These clusters could all be broken down into their subcluster identities in the same way.
+
+n each of these populations is a further capacity to subset and identify more specific cell identities. 
+
+## Ureteric Epithelium
+
+The Ureteric Epithelium is the epithelial structure that the nephron plumbs into for the filtrate to be removed to the bladder. The ureteric buc cell is a progenitor cell type that gives rise to the entirety of this structure. The bud, or tip, cells are highly proliferative and move with the expanding kidney during development, as these cells differentiate and take their place in the stalk region their function changes, reflected in different gene expression profiles. <br>
+
+To identify these populations we can isolate the Ureteric cluster and reanalyse these in the same way we did the whole dataset.
+
+
+
