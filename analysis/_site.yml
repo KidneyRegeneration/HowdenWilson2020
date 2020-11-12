@@ -1,7 +1,7 @@
-name: "HowdenWilson2020"
+name: HowdenWilson2020
 output_dir: ../docs
 navbar:
-  title: "HowdenWilson2020"
+  title: HowdenWilson2020
   left:
   - text: Home
     href: index.html
@@ -9,6 +9,14 @@ navbar:
     href: about.html
   - text: License
     href: license.html
+  - text: HFK
+    href: HFK_Annotation.html
+  - text: Bulk
+    href: BulkRNA-Seq.html
+  right:
+  - icon: fa-github
+    text: Source code
+    href: https://github.com/sbwilson91/HowdenWilson2020
 output:
   workflowr::wflow_html:
     toc: yes
