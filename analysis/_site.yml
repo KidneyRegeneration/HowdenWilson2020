@@ -13,6 +13,8 @@ navbar:
     href: HFK_Annotation.html
   - text: Bulk
     href: BulkRNA-Seq.html
+  - text: Figures
+    href: Figures.html
   right:
   - icon: fa-github
     text: Source code
