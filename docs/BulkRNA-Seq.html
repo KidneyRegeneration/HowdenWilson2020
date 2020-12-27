@@ -27,6 +27,8 @@
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
 
 <link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
 <!-- Add a small amount of space between sections. -->
@@ -372,9 +374,18 @@ div.tocify {
 <li>
   <a href="BulkRNA-Seq.html">Bulk</a>
 </li>
+<li>
+  <a href="Figures.html">Figures</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        
+        <li>
+  <a href="https://github.com/sbwilson91/HowdenWilson2020">
+    <span class="fa fa-github"></span>
+     
+    Source code
+  </a>
+</li>
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -411,7 +422,7 @@ div.tocify {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2020-11-13
+<strong>Last updated:</strong> 2020-12-28
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
@@ -502,16 +513,16 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrong711a2c5"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> 711a2c5 </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomKidneyRegenerationHowdenWilson2020treed1d8b3f0a1a0b90e15b3a664233c38d275476265targetblankd1d8b3fa"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/KidneyRegeneration/HowdenWilson2020/tree/d1d8b3f0a1a0b90e15b3a664233c38d275476265" target="_blank">d1d8b3f</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrong711a2c5" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomKidneyRegenerationHowdenWilson2020treed1d8b3f0a1a0b90e15b3a664233c38d275476265targetblankd1d8b3fa" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version 711a2c5. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version <a href="https://github.com/KidneyRegeneration/HowdenWilson2020/tree/d1d8b3f0a1a0b90e15b3a664233c38d275476265" target="_blank">d1d8b3f</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -522,7 +533,11 @@ Ignored files:
     Ignored:    .Rproj.user/
 
 Untracked files:
+    Untracked:  code/AddModuleScore_bulk.R
+    Untracked:  code/GeneSets.Rmd
     Untracked:  code/functions.R
+    Untracked:  code/hfk.R
+    Untracked:  code/job_identity_markers.R
 
 Unstaged changes:
     Modified:   .gitignore
@@ -567,10 +582,27 @@ Message
 <tbody>
 <tr>
 <td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/KidneyRegeneration/HowdenWilson2020/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/BulkRNA-Seq.html" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+<td>
+Build site.
+</td>
+</tr>
+<tr>
+<td>
 Rmd
 </td>
 <td>
-711a2c5
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/711a2c5d65bfe450a0c6870effe2fd16a4e4ea77/analysis/BulkRNA-Seq.Rmd" target="_blank">711a2c5</a>
 </td>
 <td>
 Sean Wilson
@@ -674,10 +706,121 @@ x dplyr::slice()      masks IRanges::slice()</code></pre>
 <pre><code>&#39;select()&#39; returned 1:many mapping between keys and columns</code></pre>
 <p>Visualise library sizes</p>
 <p><img src="figure/BulkRNA-Seq.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-3-1">
+Past versions of unnamed-chunk-3-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-3-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/figure/BulkRNA-Seq.Rmd/unnamed-chunk-3-1.png" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Remove genes with less than 1 count per million in at least 3 samples. Then normalise using TMM.</p>
 <p><img src="figure/BulkRNA-Seq.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
+Past versions of unnamed-chunk-5-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/figure/BulkRNA-Seq.Rmd/unnamed-chunk-5-1.png" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre><code>[1] 500  12</code></pre>
 <p><img src="figure/BulkRNA-Seq.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/figure/BulkRNA-Seq.Rmd/unnamed-chunk-6-1.png" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="statistical-analysis" class="section level2">
 <h2>Statistical analysis</h2>
@@ -685,12 +828,123 @@ x dplyr::slice()      masks IRanges::slice()</code></pre>
 <p>Statistically significant differentially expressed genes are identified using empirical Bayes moderated t-tests (Smyth 2005), allowing for a mean-variance trend and performing robust empirical Bayes shrinkage of the gene-wise variances to protect against hypervariable genes (Phipson, Lee, et al. 2016). P-values are adjusted for false discovery rate using the Benjamini-Hochberg method (Benjamini &amp; Hochberg 1995).</p>
 <p>Set up the design matrix and apply voom to the counts.</p>
 <p><img src="figure/BulkRNA-Seq.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/figure/BulkRNA-Seq.Rmd/unnamed-chunk-7-1.png" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Fit the linear model.</p>
 <p>Summarise the numbers of differentially expressed genes for each comparison.</p>
 <p><img src="figure/BulkRNA-Seq.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/figure/BulkRNA-Seq.Rmd/unnamed-chunk-9-1.png" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>As there are many differentially expressed genes in the original analysis, we will also test relative to a threshold (TREAT) of absolute log2 fold change &gt; 1.</p>
 <p>Summarise the numbers of differentially expressed genes for each comparison. There are fewer DE genes from the TREAT analysis.</p>
 <p><img src="figure/BulkRNA-Seq.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
+Past versions of unnamed-chunk-11-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/KidneyRegeneration/HowdenWilson2020/blob/84370d51eb1680b0cd69730aeaf9ee087e059b0c/docs/figure/BulkRNA-Seq.Rmd/unnamed-chunk-11-1.png" target="_blank">84370d5</a>
+</td>
+<td>
+Sean Wilson
+</td>
+<td>
+2020-11-13
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="gene-set-scores" class="section level2">
 <h2>Gene set scores</h2>
@@ -796,7 +1050,7 @@ loaded via a namespace (and not attached):
 [69] GenomicAlignments_1.20.1    bit_4.0.4                  
 [71] tidyselect_1.1.0            plyr_1.8.6                 
 [73] magrittr_1.5                R6_2.5.0                   
-[75] generics_0.0.2              DelayedArray_0.12.2        
+[75] generics_0.1.0              DelayedArray_0.12.2        
 [77] DBI_1.1.0                   haven_2.2.0                
 [79] pillar_1.4.3                whisker_0.4                
 [81] withr_2.2.0                 RCurl_1.98-1.2             
