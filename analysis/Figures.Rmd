@@ -1,0 +1,345 @@
+---
+title: "Figures"
+author: "Sean Wilson"
+date: "2020-12-26"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+## Introduction
+
+This document contains the code generated figures.
+
+```{r}
+library(Seurat)
+library(tidyverse)
+library(NMF)
+library(RColorBrewer)
+library(patchwork)
+source(here::here("code/functions.R"))
+source(here::here("code/AddModuleScore_bulk.R"))
+options(future.globals.maxSize = Inf)
+# load the human fetal kidney data
+load(file = here::here("data/Holloway2020.rda"))
+# load the ue/dn subsetted data
+load(file = here::here("data/UE_DN_Subset.rda"))
+```
+
+
+## Figure 1
+
+Figure 1A:  
+HFK single cell UMAP projection
+
+```{r, fig.width=9, fig.height=4}
+DimPlot(hfk, group.by = "Identity", label = F, pt.size = 0.5,
+              cols = rev(c(brewer.pal(9, "Set1"), brewer.pal(8, "Set2"), brewer.pal(12, "Set3"))))  +
+  theme(
+        axis.title = element_blank())
+```
+
+Figure 1B:  
+Distal Nephron and Ureteric Epithelial cell types subset - UMAP projection
+
+```{r, fig.width=6, fig.height=4}
+DimPlot(ue.dn, group.by = "IdentityRandom", label = T, repel = T, label.size = 4) +
+  theme(legend.position = "none",
+        axis.title = element_blank()) 
+```
+
+Figure 1C:  
+DotPlot of commonly used DN/UE markers
+```{r, fig.width=8, fig.height=4}
+ue.dn$Identity <- factor(ue.dn$Identity,
+                         levels = rev(c("N.Distal_EN", "N.LoH", "N.DST", "N.DCT", "N.CS",
+                                        "U.Tip", "U.Cortical", "U.Med_Outer", "U.Med_Inner")))
+ue.dn <- SetIdent(ue.dn, value = "Identity")
+SWDP.col(ue.dn, features = rev(c("HOXB7", "GATA3", "CALB1", "KRT8", "KRT18", "KRT19", "AQP2",
+                               "CLU", "MAL", "SPP1", "SPINT2", "CDH16")), group.by = "Identity", assay = "RNA", col.max = 10) + theme(legend.position = "none")
+```
+
+Figure 1D:  
+DotPlot of more accurate DN/UE markers from Combes et al. 2019
+```{r, fig.width=8, fig.height=4}
+SWDP.col(ue.dn, features = rev(c("BSND", "FXYD2", "KCNJ1", "KNG2", "CLCNKB", "CLEC18A",
+                               "KCNN4", "AKR1B7", "ALDH3B2", "WNT9B", "CTNND2", "UPK1B", "AQP2", "RET")
+                               ), group.by = "Identity", assay = "RNA", col.max = 10) +
+  theme(legend.position = "none") 
+```
+
+Figure 1E:  
+DotPlot of the top 10 DE markers for each identity
+```{r}
+ue.dn.markers <- FindAllMarkers(ue.dn, only.pos = T, verbose = T, test.use = "t",
+                                logfc.threshold = 0.25, min.pct = 0.5, min.diff.pct = 0.3)
+#ue.dn.markers$cluster <- as.character(ue.dn.markers$cluster)
+
+export.markers <- lapply(1:length(unique(ue.dn.markers$cluster)), function(x) {
+    ue.dn.markers %>%
+        dplyr::filter(cluster == unique(ue.dn.markers$cluster)[x], p_val_adj < 0.05, avg_logFC > 0) %>%
+        dplyr::arrange(-avg_logFC) %>%
+        transmute(Gene = gene, LogFC = avg_logFC, pVal = p_val_adj, pct.diff = pct.1-pct.2)
+  
+})
+
+
+top10 <- ue.dn.markers %>% mutate(pct.diff = pct.1-pct.2) %>% 
+  group_by(cluster) %>% top_n(10, wt = pct.diff) %>% arrange(cluster, -pct.diff)
+top5 <- ue.dn.markers %>% mutate(pct.diff = pct.1-pct.2) %>% 
+  group_by(cluster) %>% top_n(5, wt = pct.diff) %>% arrange(cluster, -pct.diff)
+```
+
+```{r, fig.width=16, fig.height=6}
+(SWDP.col(ue.dn, features = rev(unique(top10$gene[1:40])), group.by = "Identity", assay = "RNA", col.max = 10) +
+  theme(legend.position = "none")) /
+(SWDP.col(ue.dn, features = rev(unique(top10$gene[41:90])), group.by = "Identity", assay = "RNA", col.max = 10))
+```
+
+## Figure 2
+
+```{r, include=FALSE}
+v <- read_rds(here::here("data/BulkSeqRd1_voom.rds"))
+colnames(v$E) <- c("ch+/Ep+ UE", "ch+/Ep+ UE", "ch+/Ep+ UE",
+                   "ch+/Ep+ org", "ch+/Ep+ org", "ch+/Ep+ org",
+                   "ch+ org", "ch+ org", "ch+ org",
+                   "Ep+ org", "Ep+ org", "Ep+ org")
+
+de.genes <- read_rds(here::here("data/BulkSeqRd1_degenes.rds"))
+de.genes.treat <- read_rds(here::here("data/BulkSeqRd1_degenestreat.rds"))
+
+deUP <- lapply(de.genes.treat, FUN = function(x) x %>% filter(logFC > 0.25, adj.P.Val < 0.05) %>% arrange(logFC))
+deDOWN <- lapply(de.genes.treat, FUN = function(x) x %>% filter(logFC < -0.25, adj.P.Val < 0.05) %>% arrange(-logFC))
+pal = c("green", "blue", "red", "purple")
+targets <- read_rds(here::here("data/BulkSeqRd1_targets.rds"))
+dtt <- read_rds(here::here("data/BulkSeqRd1_dtt.rds"))
+
+vcol <- viridis::viridis_pal()(10)
+bwr.col <- c("blue", "white", "red")
+
+v2 <- read_rds(here::here("data/VoomOutput_BulkSamples.rds"))
+targets.new <- read_rds(here::here("data/Targets.csv"))
+targets.new$ID[1:18] <- c("2 wks_1", "2 wks_2", "2 wks_3", "Psg_1", "Psg_2", "Psg_3", "F/T_1", "F/T_2", "F/T_3", "Stalk_1", "Stalk_2", "Stalk_3",
+                    "NoFacs_1", "NoFacs_2", "NoFacs_3", "3 wks_1","3_wks_2", "3_wks_3")
+targets.new$Group[1:18] <- c("2 weeks", "2 weeks", "2 weeks", "Passaged", "Passaged", "Passaged", "Freeze/Thaw", "Freeze/Thaw", "Freeze/Thaw", 
+                             "Stalk", "Stalk", "Stalk", "NoFacs", "NoFacs", "NoFacs", "3 weeks","3 weeks", "3 weeks")
+
+
+score.all <- read_rds(here::here("data/V2_GeneSet_Score_all.rds"))
+scores.all <- (score.all %>% transmute(S.OC_NZ, S.IC, S.Med, S.Mesangial, S.NP_Str, N.NP_Str, N.NPC, N.NPC_CC, N.NPC_Primed,
+                                       N.NPC_PTA, N.NPC_PTA_CC, N.RV,
+                                       N.PEC, N.Pod_Dev, N.Pod_Mat, N.Medial_EN, N.PT_Dev, N.PT_Mat,
+                                       N.Distal_EN, N.LoH, N.DST, N.DCT, N.CS, U.Tip, U.Cortical, U.Med_Outer,
+                                       U.Med_Inner, Endothelium, Immune))
+
+rownames(scores.all) <- rownames(score.all)
+rownames(scores.all)[1:18] <-  c("2 wks_1", "2 wks_2", "2 wks_3", "Psg_1", "Psg_2", "Psg_3", "F/T_1", "F/T_2", "F/T_3", "Stalk_1", "Stalk_2", "Stalk_3",
+                    "NoFacs_1", "NoFacs_2", "NoFacs_3", "3 wks_1","3_wks_2", "3_wks_3")
+ordered.ids <- c(16,6,8,29,19,20,4,3,2,23,26,15,17,12,11,13,21,24,5,28,18,1,10,25,14,22,7,9,27)
+ordered.ids.kidney <- c(17,9,29,6,21,4,3,2,24,16,22,25,18,13,12,14,8,5,28,19,1,11,26,15,23,7)
+
+targets.new$Group[19:30] <- c(rep("ch+/Ep+ UB", 3), rep("ch+/Ep+ org", 3), rep("ch+ org", 3), rep("Ep+ org", 3))
+targets.new$ID[19:30] <- c("ch+/Ep+ UB_1", "ch+/Ep+ UB_2", "ch+/Ep+ UB_3",
+                           "ch+/Ep+ org_1", "ch+/Ep+ org_2", "ch+/Ep+ org_3", 
+                           "ch+ org_1", "ch+ org_2", "ch+ org_3",
+                           "Ep+ org_1", "Ep+ org_2", "Ep+ org_3")
+rownames(scores.all)[19:30] <-targets.new$ID[19:30] 
+
+load(file = here::here("data/scUE.rda"))
+ue.int.df <- as.data.frame(table(ue.int$gata3.seg.prediction))
+predictions <- read_rds(here::here("data/scUE_Transfer_Predictions.rds"))
+#v.hfk <- read_rds("../output/HFK_psuedobulk_voom.rds")
+```
+
+Figure 2F:  
+Heatmap showing the "Gene Set scores" of bulk RNA-seq. Samples are cell populations sorted from organoids (org) compared to a UB cultured population (UB).  
+
+```{r, fig.width=9, fig.height=9}
+aheatmap(t(scores.all[rownames(scores.all)[19:30], ]),
+         annCol = list(Sample = targets.new$Group[19:30]), annColors = list(c("red", "orange", "purple", "green")), #annColors = list(pal.e),
+         #color=vcol,
+         #main=paste0("Gene set scores for
+         #FACs organoid populations
+         #and UB cultures"), 
+         Colv = NA,
+         Rowv = NA,
+         border = TRUE,
+         scale = "column", fontsize = 13)
+
+```
+
+```{r, include=F}
+top10$UEorDN <- top10$cluster
+top10$UEorDN[1:40] <- "UE"
+top10$UEorDN[41:90] <- "DN"
+
+top10$cluster
+top10$gene
+unique(top10$gene)
+genes <- data.frame(gene = unique(top10$gene), UEorDN = factor(c(rep("UE", 39), rep("DN", 44)), levels = c("UE", "DN")), stringsAsFactors = F)
+
+genes <- genes %>% filter(gene %in% v$genes$SYMBOL)
+genes$gene
+genes$UEorDN
+geneorder <- data.frame(order = rownames(v$E[v$genes$SYMBOL %in% genes$gene, 1:6])) 
+geneorder <- left_join(geneorder, genes, by = c("order" = "gene"))
+```
+
+Figure 2G:  
+Heatmap showing expression of top differentially expressed genes between the UE and DN populations.
+
+```{r, fig.height=3, fig.width=16}
+
+aheatmap(t(v$E[v$genes$SYMBOL %in% genes$gene, 1:6]),
+         annRow = list(Sample=c("ch+/Ep+ org", "ch+/Ep+ org", "ch+/Ep+ org", 
+                                "ch+/Ep+ UE", "ch+/Ep+ UE", "ch+/Ep+ UE")),
+         annCol = list(Segment = geneorder$UEorDN), 
+         annColors = list(c("violet", "grey"), c("purple", "orange")), fontsize = 13, 
+         border = TRUE, 
+         legend = TRUE,
+         labRow = colnames(v$E[1:6]),
+         treeheight = c(10,25))
+         #main="Expression of Genes from DN and UE", scale = "none")
+
+
+```
+
+
+## Figure 4
+
+```{r}
+hfk.gata3 <- hfk[, hfk$Identity %in% c("U.Tip", "U.Cortical", "U.Med_Inner", "U.Med_Outer",
+                                      "N.DCT", "N.CS", "N.DistTubule_Dev", "S.Mesangial")]
+##hfk.gata3 <- SCTransform(hfk.gata3, do.scale = T, verbose = F)
+#ue.int <- SCTransform(ue.int, do.scale = T, verbose = F)
+#anchors.gata3 <- FindTransferAnchors(hfk.gata3, query = ue.int, dims = 1:30, reference.assay = "SCT", query.assay = "SCT", #project.query = T)
+#predictions <- TransferData(anchorset = anchors.gata3, refdata = hfk.gata3$Identity, dims = 1:30)
+#ue.int$gata3.seg.prediction <- predictions$predicted.id
+#ue.int$gata3.seg.max.score <- predictions$prediction.score.max
+
+calls <- as.data.frame(table(ue.int$gata3.seg.prediction, ue.int$gata3.seg.max.score>0.5,
+                       ue.int$sample))
+colnames(calls) <- c("Predicted Segment", "Similarity", "Cells")
+ue.int.df$pct <- ue.int.df$Freq / sum(ue.int.df$Freq) * 100
+colnames(ue.int.df) <- c("Predicted Segment", "Cells", "Percent")
+
+calls$Similarity <- gsub(pattern = "FALSE", x = calls$Similarity, replacement = "Less than 50%")
+calls$Similarity <- gsub(pattern = "TRUE", x = calls$Similarity, replacement = "More than 50%")
+```
+
+Figure 4A:  
+UMAP representation of the two single cell UE samples 
+
+```{r}
+DimPlot(ue.int, group.by = "sample", ncol = 1) +
+  #ggtitle("A. UE and DN segments transferred") +
+    theme(legend.title=element_text(size=rel(0.5))) +
+    theme(legend.text = element_text(size = rel(0.75)),
+          axis.title = element_blank(),
+          axis.text = element_blank())
+
+```
+
+Figure 4B:  
+UMAP representatives of the two single cell UE samples, grouped by the outcome from "Label Transfer" with the human fetal kidney reference.
+```{r}
+DimPlot(ue.int, group.by = "gata3.seg.prediction") +
+  #ggtitle("A. UE and DN segments transferred") +
+    theme(legend.title=element_text(size=rel(0.5))) +
+    theme(legend.text = element_text(size = rel(0.75)),
+          axis.title = element_blank(),
+          axis.text = element_blank())
+```
+
+Figure 4C:  
+Distribution of maximum similarity scores grouped by label transfer classification.
+```{r, fig.width=8, fig.height=6}
+predictions$predicted.id <- gsub("N.DistTubule_Dev", "N.DST", predictions$predicted.id)
+predictions %>% 
+  mutate(`Predicted Segment` = predicted.id, `Max score` = prediction.score.max, 
+         `Predicted Segment` = fct_relevel(`Predicted Segment`, 
+            "U.Tip", "U.Cortical", "U.Med_Outer", "U.Med_Inner", "N.CS", "N.DST", "S.Mesangial")) %>%
+  ggplot(aes(`Predicted Segment`, `Max score`)) +
+    geom_jitter(aes(colour = predicted.id), size = 0.05, alpha = 0.8)+
+  geom_violin(alpha = 0.5) +
+  theme_light()+
+  scale_y_continuous(limits = c(0,1)) +
+    theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0, size = 20)) +
+    theme(legend.position = "none")
+```
+
+Figure 4D:  
+UMAP plots showing the expression of important UE and DN genes in the single cell UE culture samples.
+```{r}
+  #ggtitle("Max similarity per cell")
+genes <- c("RET", "WNT11", 
+           "WNT9B", "WNT7B",
+           "AQP2", "UPK2")
+lp <- list()
+for (gene in genes) {
+  p <- FeaturePlot(ue.int, order = T,
+            features =  c(paste0(gene)), pt.size = 0.3, 
+                  cols = c(vcol)) + 
+  theme(axis.title = element_blank(),
+        plot.title = element_text(size = 12),
+        legend.text = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "none")
+  lp[[paste0(gene)]] <- p
+}
+
+lp %>%  patchwork::wrap_plots(design = "
+                                 ACF
+                                 BDE")
+```
+
+## Figure 7
+
+Figure 7A:  
+Heatmap showing expression of interesting genes for UE and Stalk in bulk RNA-seq samples of cultured UE and Stalk.
+
+```{r, fig.width=7, fig.height=7}
+#v <- read_rds(here::here("data/Voom_Aug20.rds"))
+targets.new <- read_csv(here::here("data/AllTargets.csv"))
+batch <- ggplotColors(length(unique(targets.new$Batch)))
+treatment <- RColorBrewer::brewer.pal(3, "Set2")
+
+#gene <- RColorBrewer::brewer.pal(length(unique(gene.markers$gene)), "Set3")
+load(file = here::here("data/Voom_Stalk.rda"))
+
+gene.markers <- tibble(gene = c("AQP2", "SPINK1", "SLC26A4", "ATP6V1B1", "WNT9B", "SLC4A5", "OXGR1", "AVPR1A", "AVPR2", "WNT7B", "SLC26A7", "SCNN1G", "CALB1", "RHBG", "WNT11"),
+                       segment = c("PC", "IC",    "IC",      "IC",       "Stalk", "Stalk",  "IC",    "IC",     "PC",    "Stalk", "IC",      "PC",     "PC",     "Stalk", "Stalk"),
+                       id = 1:15)
+segment <- RColorBrewer::brewer.pal(length(unique(gene.markers$segment)), "Set1")
+
+aheatmap((v2$E[v2$genes$SYMBOL %in% gene.markers$gene,
+              c(16:21, 31:33)]),
+         annCol = list(Treatment=targets.new$Treatment[c(16:21, 31:33)]),
+         annColors = list(Treatment = treatment), 
+         fontsize = 13, 
+         border = TRUE, 
+         treeheight = c(10,25),
+         main="", scale = "none")
+
+```
+
+Figure 7B:  
+Heatmap showing Gene Set profiles in bulk RNA-seq samples of cultured UE and Stalk.
+
+```{r, fig.width=7, fig.height=7}
+aheatmap(t(scores.all)[16:27, c(16:21, 31:33)],
+         annCol = list(Treatment=targets.new$Treatment[c(16:21, 31:33)]),
+        
+         annColors = list(Treatment = treatment), 
+         fontsize = 13, 
+         border = TRUE, 
+         treeheight = c(10,25),
+         main="", scale = "none")
+```
+
+
+
+
+
+
+

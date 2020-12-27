@@ -7,4 +7,4 @@ editor_options:
   chunk_output_type: console
 ---
 
-Describe your project.
+This repository contains code used to analyse and generate figures in Howden, Wilson et al. 2020

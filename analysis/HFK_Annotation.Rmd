@@ -25,7 +25,7 @@ library(Seurat)
 library(patchwork)
 library(here)
 library(plotly)
-source("code/functions.R")
+source(here::here("code/functions.R"))
 options(future.globals.maxSize = Inf)
 knitr::opts_chunk$set(echo = FALSE,
                       fig.width = 12, fig.height = 9)
@@ -34,6 +34,7 @@ knitr::opts_chunk$set(echo = FALSE,
 This loads the Seurat object saved in my working folder, to get this same object you can download the raw data and metadata from [GSE161255](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE161255) and recreate the object.
 
 ```{r}
+#source(here::here("code/hfk.R"))
 load(file = here::here("data/Holloway2020.rda"))
 ```
 
@@ -78,7 +79,7 @@ The large clusters can be easily classified based on their gene expression profi
 <br>
 These clusters could all be broken down into their subcluster identities in the same way.
 
-n each of these populations is a further capacity to subset and identify more specific cell identities. 
+In each of these populations is a further capacity to subset and identify more specific cell identities. 
 
 ## Ureteric Epithelium
 
@@ -86,5 +87,36 @@ The Ureteric Epithelium is the epithelial structure that the nephron plumbs into
 
 To identify these populations we can isolate the Ureteric cluster and reanalyse these in the same way we did the whole dataset.
 
+Isolate and recluster the DN and UE cell types
 
+```{r}
+#uedn <- hfk[, hfk$Identity %in% c("N.DST", "N.DCT", "N.CS", "U.Tip", "U.Cortical", 
+#                                  "U.Med_Outer", "U.Med_Inner", "N.LoH", "N.Distal_EN")]
+#ue.dn.list <- list(uedn[, uedn$Sample == "SPENCE_male"], 
+#                   uedn[, uedn$Sample == "SPENCE_female"])
+#options(future.globals.maxSize = 10000 * 1024^2)
+#
+#for (i in 1:length(ue.dn.list)) {
+#
+#ue.dn.list[[i]] <- SCTransform(ue.dn.list[[i]], verbose = F, 
+#                               vars.to.regress = c("S.Score", "G2M.Score")) 
+#}
+#
+#features <- SelectIntegrationFeatures(ue.dn.list, nfeatures = 3000)
+#ue.dn.list <- PrepSCTIntegration(ue.dn.list, anchor.features = features, verbose = F)
+#anchors <- FindIntegrationAnchors(ue.dn.list,
+#                                  normalization.method = "SCT", 
+#                                  anchor.features = features, verbose = F)
+#ue.dn <- IntegrateData(anchorset = anchors,
+#                            normalization.method = "SCT", verbose = T)
+#
+#ue.dn <- RunPCA(ue.dn)
+#ue.dn <- RunUMAP(ue.dn, dims = 1:30, seed.use = 250395, n.components = 2)
+load(here::here("data/UE_DN_Subset.rda"))
+```
+
+```{r}
+DimPlot(ue.dn, group.by = "Identity", label = T, repel = T) +
+  theme(legend.position = "none")
+```
 
