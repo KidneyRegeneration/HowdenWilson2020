@@ -299,7 +299,6 @@ Figure 7A:
 Heatmap showing expression of interesting genes for UE and Stalk in bulk RNA-seq samples of cultured UE and Stalk.
 
 ```{r}
-
 targets.new <- read_csv(here::here("data/AllTargets.csv"))
 batch <- ggplotColors(length(unique(targets.new$Batch)))
 treatment <- RColorBrewer::brewer.pal(3, "Set2")
@@ -329,6 +328,7 @@ Figure 7B:
 Heatmap showing Gene Set profiles in bulk RNA-seq samples of cultured UE and Stalk.
 
 ```{r, fig.width=7, fig.height=7}
+load(file = here::here("data/V3_StalkGeneSets.rda"))
 aheatmap(t(scores.all)[16:27, c(16:21, 31:33)],
          annCol = list(Treatment=targets.new$Treatment[c(16:21, 31:33)]),
          annColors = list(Treatment = treatment), 
@@ -336,6 +336,9 @@ aheatmap(t(scores.all)[16:27, c(16:21, 31:33)],
          border = TRUE, 
          treeheight = c(10,25),
          main="", scale = "none")
+
+
+
 ```
 
 
