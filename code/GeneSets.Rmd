@@ -1,0 +1,486 @@
+---
+title: "GeneSets"
+author: "Sean Wilson"
+date: "2020-11-09"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(edgeR)
+library(limma)
+library(RColorBrewer)
+library(NMF)
+library(Homo.sapiens)
+library(org.Hs.eg.db)
+library(Glimma)
+library(gplots)
+source("general_r_functions.R")
+nmf.options(grid.patch=FALSE)
+library(Seurat)
+source("AddModuleScore_bulk.R")
+source("functions.R")
+```
+
+
+
+## Gene sets 
+
+## Whole Human Fetal Kidney
+
+
+```{r}
+load(here::here("data/Holloway2020.rda"))
+
+```
+
+
+Generate pseudobulk for HFK dataset
+
+```{r}
+hfk <- SetIdent(hfk, value = "Identity")
+hfk.counts <- data.frame(row.names = rownames(hfk))
+for (i in 1:length(unique(hfk$Identity))){
+  temp.seurat <- subset(hfk, ident = unique(hfk$Identity)[i])
+  temp.counts <- as.data.frame(temp.seurat@assays$RNA@counts)
+  temp.bulk <- data.frame(rowSums(temp.counts))
+  colnames(temp.bulk) <- c(unique(as.character(hfk$Identity))[i])
+  hfk.counts <- cbind(hfk.counts, temp.bulk)
+}
+
+
+targets.hfk <- data.frame(Experiment = rep("scHFK", times = ncol(hfk.counts)),
+                         Group = colnames(hfk.counts),
+                         Rep = rep(1, times = ncol(hfk.counts)),
+                         ID = paste0(colnames(hfk.counts), "_scHFK"),
+                         Exp.Origin = rep("NA", times = ncol(hfk.counts)),
+                         stringsAsFactors = F)
+hfk.counts[is.na(hfk.counts)] <- 0
+
+dge <- DGEList(counts=hfk.counts, genes=rownames(hfk.counts), group=targets.hfk$Group)
+colnames(dge) <- paste(targets.hfk$ID)
+ann <- AnnotationDbi::select(org.Hs.eg.db, keys=rownames(dge), keytype = "SYMBOL", 
+              columns=c("ENTREZID","SYMBOL","GENENAME"))
+ann <- ann[!duplicated(ann$SYMBOL),]
+dge$genes <- ann[match(rownames(dge),ann$SYMBOL),]
+
+isexpr <- rowSums(cpm(dge) > 1) >= 3
+y <- dge[isexpr,,keep.lib.sizes=FALSE]
+y <- calcNormFactors(y)
+str(y)
+
+design <- model.matrix(~0+factor(targets.hfk$Group))
+colnames(design) <- c(levels(factor(targets.hfk$Group)))
+v <- voom(y, design, plot=FALSE)
+#dge$genes$LENGTH <- dge$Length[rownames(raw) %in% rownames(dge)]
+```
+
+
+Ran the script "job_identity_markers.R" as a local job to generate geneset output for the whole hfk.
+
+```{r}
+geneset <- read_rds("../jobs/HFK_Genesets_Identity.rds")
+geneset.filter <- lapply(geneset, FUN = function(x) (x %>%
+                                                     rownames_to_column(var = "gene") %>% 
+                                                       mutate(pct.diff = pct.1-pct.2) %>% 
+                                                      # filter(avg_logFC > 1) %>% 
+                                                      # filter(p_val_adj < 5e-2) %>% 
+                                                       #filter(pct.diff > 0.8) %>% 
+                                                     column_to_rownames(var = "gene")))
+genes <- NULL
+clusters <- unique(hfk$Identity)
+best.markers <- list()
+for (i in seq(1, 812, 28)) {
+  for (j in 1:28){
+    genes <- c(genes, rownames(geneset.filter[[i+j-1]]))
+  }
+  best.markers[[paste0(clusters[(i+27)/28])]] <- genes
+  genes <- NULL
+}
+ranked <- list()
+for (i in 1:29){
+  f <- as.data.frame(table(best.markers[[i]]), stringsAsFactors = F)[1,2]
+  ranked[[paste0(clusters[i])]] <- as.data.frame(table(best.markers[[i]]), stringsAsFactors = F) %>%
+    arrange(-Freq) %>% 
+    filter(Freq>25)
+  
+}
+
+for (i in 1:29){
+  print(paste0(length(ranked[[i]]$Freq), " ", names(ranked[i])))
+}
+ranked.l <- lapply(1:length(ranked),function(i){
+  ranked[[i]]$Var1
+})
+names(ranked.l) <- names(ranked)
+```
+
+```{r}
+
+ranked.unique <- list()
+for (i in 1:length(names(ranked.l))){
+  f <- ranked.l[[names(ranked.l)[i]]][(ranked.l[[names(ranked.l)[i]]] %!in% as.character(unlist(ranked.l[names(ranked.l)!=names(ranked.l)[i]])))]
+  ranked.unique[[paste0(names(ranked.l)[i])]] <- f
+  
+}
+for (i in 1:length(ranked.unique)){
+  print(paste0(length(ranked.unique[[i]]), " ", names(ranked.unique[i])))
+}
+```
+
+
+
+
+```{r}
+score.all <- AddModuleScore_bulk(v, features = ranked.l)
+
+
+scores.all <- (score.all %>% transmute(S.OC_NZ, S.IC, S.Med, S.Mesangial, S.NP_Str, N.NP_Str, N.NPC, N.NPC_CC, N.NPC_Primed,
+                                       N.NPC_PTA, N.NPC_PTA_CC, N.RV,
+                                       N.PEC, N.Pod_Dev, N.Pod_Mat, N.Medial_EN, N.PT_Dev, N.PT_Mat,
+                                       N.Distal_EN, N.LoH, N.DST, N.DCT, N.CS, U.Tip, U.Cortical, U.Med_Outer,
+                                       U.Med_Inner, Endothelium, Immune))
+
+rownames(scores.all) <- rownames(score.all)
+
+ordered.ids <- c(16,6,8,29,19,20,4,3,2,23,26,15,17,12,11,13,21,24,5,28,18,1,10,25,14,22,7,9,27)
+
+```
+
+
+```{r, fig.width=10, fig.height=8}
+pal = ggplotColors(length(unique(targets.hfk$Group)))
+aheatmap(t(scores.all[rownames(scores.all)[ordered.ids],]),
+         annCol = list(colnames(scores.all)[1:29]), annColors = list(pal),
+         color=c("blue", "white", "red"),
+         main=paste0("Gene set scores for Pseudobulk scHFK (Broader list)"), 
+         Rowv = NA,
+         Colv = NA,
+         scale = "column")
+
+```
+
+export 
+
+```{r}
+write_rds(ranked.l, "../output/HFK_Geneset_25Freq.rds")
+write_rds(v, "../output/HFK_psuedobulk_voom.rds")
+```
+
+## Test limits of this package
+
+Lets cluster the whole HFK dataset into large and small clusters (res) and see how the assignment changes across time.  
+
+For this I need to:  
+
+1) With the whole dataset, cluster in increasing levels of resolution (beyond what was done in the original works)  
+2) Generate tables showing the contribution of cells from each annotated cluster to new clusters
+4) Turn these into pseudobulks
+3) Perform an iterative analysis of each cluster, the score, and contribution of each annotated segment  
+
+```{r}
+hfk <- read_rds("../output/seurat/HumanFetalKidney_Reference_Spence.rds")
+
+```
+
+Generate pseudobulk for HFK dataset
+
+```{r}
+old.metadata <- hfk@meta.data
+hfk@meta.data <- hfk@meta.data[, c(29, 1)]
+colnames(hfk@meta.data)
+
+DefaultAssay(hfk) <- "integrated"
+hfk <- FindClusters(hfk, resolution = seq(0,2,0.1))
+
+
+DefaultAssay(hfk) <- "RNA"
+# part 1: make a list with each 
+hfk.counts.list <- list(NULL)
+
+identities <- colnames(hfk@meta.data)
+for (j in 1:length(identities)) { # j is a sequence along the names in the metadata column
+  
+  hfk.counts <- data.frame(row.names = rownames(hfk))  # making the dataframe "hfk.counts" which is where each metadata columns dataframe will be temp stored
+  
+  clusters <- unique(hfk[[identities[j]]])[,1]
+  
+  for (i in 0:length(clusters)) { # i is the sequence of clusters in each metadata column from 
+    
+    hfk <- SetIdent(hfk, value = identities[j])
+    
+    temp.seurat <- subset(hfk, ident = clusters[i])
+    
+    temp.counts <- as.data.frame(temp.seurat@assays$RNA@counts)
+    
+    temp.bulk <- data.frame(rowSums(temp.counts))
+    
+    colnames(temp.bulk) <- c(unique(as.character(clusters))[i])
+    
+    hfk.counts <- cbind(hfk.counts, temp.bulk)
+    
+  }
+  
+  
+  hfk.counts.list[[identities[j]]] <- hfk.counts
+}
+
+# clean the output
+
+hfk.counts.list <- hfk.counts.list[c(2,5:24)] # remove NULL first table
+hfk.counts.list <- lapply(hfk.counts.list, function(x) x[,-1])
+
+hfk.counts.list[[2]] <- data.frame("orig.ident" = hfk.counts.list[[2]], row.names = rownames(hfk.counts.list[[2]])) 
+hfk.counts.list[[3]] <- data.frame("all.cells" = hfk.counts.list[[3]], row.names = rownames(hfk.counts.list[[3]])) 
+
+
+
+# iterate through each table in the list to generate a voom file list
+
+voom.list <- list(NULL)
+for (i in 1:length(names(hfk.counts.list))) {
+                   x <- hfk.counts.list[[i]]
+                   rownames(x) <- rownames(hfk)
+                   targets <- data.frame(clustering = colnames(x))
+                   x[is.na(x)] <- 0
+                   dge <- DGEList(counts = x, genes = rownames(x), group = targets$clustering)
+                   colnames(dge) <- paste(targets$clustering)
+                   ann <- AnnotationDbi::select(org.Hs.eg.db, keys=rownames(dge), keytype = "SYMBOL", 
+                   columns=c("ENTREZID","SYMBOL","GENENAME"))
+                   ann <- ann[!duplicated(ann$SYMBOL),]
+                   dge$genes <- ann[match(rownames(dge),ann$SYMBOL),]
+                   isexpr <- rowSums(cpm(dge) > 1) >= 3
+                   y <- dge[isexpr,,keep.lib.sizes = FALSE]
+                   y <- calcNormFactors(y)
+                   design <- model.matrix(~0+factor(targets$clustering))
+                   colnames(design) <- c(levels(factor(targets$clustering)))
+                   v <- voom(y, design, plot = FALSE)
+                   voom.list[[paste0(names(hfk.counts.list)[i])]] <- v
+}
+
+
+```
+
+
+```{r}
+ranked.l <- read_rds("../output/HFK_Geneset_25Freq.rds")
+geneset.scores <- list(NULL)
+for (i in 1:length(names(voom.list))) {
+  v <- (voom.list[[i]])
+  score <- AddModuleScore_bulk(v, features = ranked.l)
+  scores <- (score %>% transmute(S.OC_NZ, S.IC, S.Med, S.Mesangial, S.NP_Str, N.NP_Str, N.NPC, N.NPC_CC, N.NPC_Primed,
+                                       N.NPC_PTA, N.NPC_PTA_CC, N.RV,
+                                       N.PEC, N.Pod_Dev, N.Pod_Mat, N.Medial_EN, N.ProxTubule_Dev, N.ProxTubule_Mat,
+                                       N.Distal_EN, N.LoH, N.DistTubule_Dev, N.DCT, N.CS, U.Tip, U.Cortical, U.Med_Outer,
+                                       U.Med_Inner, Endothelium, Immune))
+  rownames(scores) <- rownames(score)
+  geneset.scores[[paste0(names(voom.list)[i])]] <- scores
+  
+}
+#pal = ggplotColors(length(unique(targets$clustering)))
+
+aheatmap(t(geneset.scores[[21]][rownames(geneset.scores[[21]]),]),
+         #annCol = list(colnames(scores.all)[1:29]), annColors = list(pal),
+         color=c("blue", "white", "red"),
+         main=paste0("Gene set scores for Pseudobulk scHFK (Broader list)"), 
+         #Rowv = NA,
+         #Colv = NA,
+         scale = "column")
+```
+
+
+
+Look at single cell calling:  
+
+1) Generate tables of cell gene expression
+2) Perform an iterative analysis of each cell
+3) Look at cell calls compared to cluster of origin
+4) Expand that to all clusters
+5) Potentially utilise clustree to visualise
+
+Voom the single cell HFK dataset
+
+```{r}
+colnames(hfk@meta.data)
+DefaultAssay(hfk) <- "RNA"
+
+# part 1: make a list with each 
+hfk.sc.counts <- data.frame(row.names = rownames(hfk))
+
+identities <- colnames(hfk@meta.data)
+
+ cells <- colnames(hfk)
+
+for (i in 1:length(cells)) {  
+  
+ 
+  
+  temp.seurat <- subset(hfk, cells = cells[i])
+  
+  temp.counts <- as.data.frame(temp.seurat@assays$RNA@counts)
+  
+  colnames(temp.counts) <- c(unique(as.character(cells))[i])
+  
+  hfk.sc.counts <- cbind(hfk.sc.counts, temp.counts)
+  
+}
+
+
+
+targets <- as.data.frame(hfk@meta.data, row.names = colnames(hfk))
+dge <- DGEList(counts = hfk.sc.counts, genes = rownames(hfk), group = targets$Identity)
+colnames(dge) <- paste(rownames(targets))
+ann <- AnnotationDbi::select(org.Hs.eg.db, keys=rownames(dge), keytype = "SYMBOL", 
+                             columns=c("ENTREZID","SYMBOL","GENENAME"))
+ann <- ann[!duplicated(ann$SYMBOL),]
+dge$genes <- ann[match(rownames(dge),ann$SYMBOL),]
+isexpr <- rowSums(cpm(dge) > 1) >= 3
+y <- dge[isexpr,,keep.lib.sizes = FALSE]
+y <- calcNormFactors(y)
+design <- model.matrix(~0+factor(rownames(targets)))
+colnames(design) <- c(levels(factor(rownames(targets))))
+voom.hfk <- voom(y, design, plot = FALSE)
+
+
+```
+
+
+```{r, fig.width=15, fig.height=10}
+ranked.l <- read_rds("../output/HFK_Geneset_25Freq.rds")
+map(ranked.l, function(x) length)
+
+score <- AddModuleScore_bulk(voom.hfk, features = ranked.l)
+scores <- (score %>% transmute(S.OC_NZ, S.IC, S.Med, S.Mesangial, S.NP_Str, N.NP_Str, N.NPC, N.NPC_CC, N.NPC_Primed,
+                               N.NPC_PTA, N.NPC_PTA_CC, N.RV,
+                               N.PEC, N.Pod_Dev, N.Pod_Mat, N.Medial_EN, N.ProxTubule_Dev, N.ProxTubule_Mat,
+                               N.Distal_EN, N.LoH, N.DistTubule_Dev, N.DCT, N.CS, U.Tip, U.Cortical, U.Med_Outer,
+                               U.Med_Inner, Endothelium, Immune))
+rownames(scores) <- rownames(score)
+
+scores$Identity <- hfk$Identity
+
+pal = ggplotColors(length(unique(colnames(scores))))
+
+aheatmap(t(scores[, 1:29]),
+         annCol = list(scores[, 30]), annColors = list(pal),
+         color=c("blue", "white", "red"),
+         main=paste0("Gene set scores for Pseudobulk scHFK (Broader list)"), 
+         #Rowv = NA,
+         #Colv = NA,
+         scale = "column")
+```
+No NP-Str pops due to low cell numbers
+
+```{r, fig.width=15, fig.height=10}
+ranked.l <- read_rds("../output/HFK_Geneset_25Freq.rds")
+
+
+score <- AddModuleScore_bulk(voom.hfk, features = ranked.l)
+scores <- (score %>% transmute(S.OC_NZ, S.IC, S.Med, S.Mesangial, N.NPC, N.NPC_CC, N.NPC_Primed,
+                               N.NPC_PTA, N.NPC_PTA_CC, N.RV,
+                               N.PEC, N.Pod_Dev, N.Pod_Mat, N.Medial_EN, N.ProxTubule_Dev, N.ProxTubule_Mat,
+                               N.Distal_EN, N.LoH, N.DistTubule_Dev, N.DCT, N.CS, U.Tip, U.Cortical, U.Med_Outer,
+                               U.Med_Inner, Endothelium, Immune))
+rownames(scores) <- rownames(score)
+
+scores$Identity <- hfk$Identity
+
+pal = ggplotColors(length(unique(scores$Identity)))
+
+aheatmap(t(scores[, 1:27]),
+         annCol = list(scores[, 28]), annColors = list(pal),
+         color=c("blue", "white", "red"),
+         main=paste0("Gene set scores for Pseudobulk scHFK (Broader list)"), 
+         #Rowv = NA,
+         #Colv = NA,
+         scale = "column")
+```
+
+For the most part, that's done an excellent job of categorising the cells.
+
+Will try this with the novel dataset: single cell of UE cultures
+
+
+```{r}
+urep <- read_rds("../output/seurat/scUE_Cultures_Transfers.rds")
+colnames(urep@meta.data)
+DefaultAssay(urep) <- "RNA"
+
+# part 1: make a list with each 
+urep.sc.counts <- data.frame(row.names = rownames(urep))
+
+identities <- colnames(urep@meta.data)
+
+ cells <- colnames(urep)
+
+for (i in 1:length(cells)) {  
+  
+ 
+  
+  temp.seurat <- subset(urep, cells = cells[i])
+  
+  temp.counts <- as.data.frame(temp.seurat@assays$RNA@counts)
+  
+  colnames(temp.counts) <- c(unique(as.character(cells))[i])
+  
+  urep.sc.counts <- cbind(urep.sc.counts, temp.counts)
+  
+}
+
+
+
+targets <- as.data.frame(urep@meta.data, row.names = colnames(urep))
+dge <- DGEList(counts = urep.sc.counts, genes = rownames(urep), group = targets$Identity)
+colnames(dge) <- paste(rownames(targets))
+ann <- AnnotationDbi::select(org.Hs.eg.db, keys=rownames(dge), keytype = "SYMBOL", 
+                             columns=c("ENTREZID","SYMBOL","GENENAME"))
+ann <- ann[!duplicated(ann$SYMBOL),]
+dge$genes <- ann[match(rownames(dge),ann$SYMBOL),]
+isexpr <- rowSums(cpm(dge) > 1) >= 3
+y <- dge[isexpr,,keep.lib.sizes = FALSE]
+y <- calcNormFactors(y)
+design <- model.matrix(~0+factor(rownames(targets)))
+colnames(design) <- c(levels(factor(rownames(targets))))
+voom.urep <- voom(y, design, plot = FALSE)
+
+
+```
+
+
+```{r, fig.width=15, fig.height=10}
+#ranked.l <- read_rds("../output/urep_Geneset_25Freq.rds")
+
+
+score <- AddModuleScore_bulk(voom.urep, features = ranked.l)
+scores.urep <- (score %>% transmute(S.OC_NZ, S.IC, S.Med, S.Mesangial, N.NPC, N.NPC_CC, N.NPC_Primed,
+                               N.NPC_PTA, N.NPC_PTA_CC, N.RV,
+                               N.PEC, N.Pod_Dev, N.Pod_Mat, N.Medial_EN, N.ProxTubule_Dev, N.ProxTubule_Mat,
+                               N.Distal_EN, N.LoH, N.DistTubule_Dev, N.DCT, N.CS, U.Tip, U.Cortical, U.Med_Outer,
+                               U.Med_Inner, Endothelium, Immune))
+rownames(scores.urep) <- rownames(score)
+
+scores.urep$Identity <- urep$gata3.seg.prediction
+
+pal = ggplotColors(length(unique(scores.urep$Identity)))
+
+aheatmap(t(scores.urep[, 1:27]),
+         annCol = list(scores.urep[, 28]), annColors = list(pal),
+         color=c("blue", "white", "red"),
+         main=paste0("Gene set scores for Pseudobulk scurep (Broader list)"), 
+         #Rowv = NA,
+         #Colv = NA,
+         scale = "column")
+
+tip.scores.urep <- scores.urep %>% filter(Identity == "U.Tip")
+aheatmap(t(tip.scores.urep[, 1:27]),
+         annCol = list(tip.scores.urep[, 28]), annColors = list(pal),
+         color=c("blue", "white", "red"),
+         main=paste0("Gene set scores for Pseudobulk scurep (Broader list)"), 
+         #Rowv = NA,
+         #Colv = NA,
+         scale = "column")
+```
+
