@@ -9,7 +9,7 @@ editor_options:
 
 ## Introduction
 
-This document contains the code generated figures.
+This document shows the figures within the manuscript generated with R code. 
 
 ```{r}
 library(Seurat)
@@ -298,8 +298,8 @@ lp %>%  patchwork::wrap_plots(design = "
 Figure 7A:  
 Heatmap showing expression of interesting genes for UE and Stalk in bulk RNA-seq samples of cultured UE and Stalk.
 
-```{r, fig.width=7, fig.height=7}
-#v <- read_rds(here::here("data/Voom_Aug20.rds"))
+```{r}
+
 targets.new <- read_csv(here::here("data/AllTargets.csv"))
 batch <- ggplotColors(length(unique(targets.new$Batch)))
 treatment <- RColorBrewer::brewer.pal(3, "Set2")
@@ -311,7 +311,9 @@ gene.markers <- tibble(gene = c("AQP2", "SPINK1", "SLC26A4", "ATP6V1B1", "WNT9B"
                        segment = c("PC", "IC",    "IC",      "IC",       "Stalk", "Stalk",  "IC",    "IC",     "PC",    "Stalk", "IC",      "PC",     "PC",     "Stalk", "Stalk"),
                        id = 1:15)
 segment <- RColorBrewer::brewer.pal(length(unique(gene.markers$segment)), "Set1")
+```
 
+```{r, fig.width=7, fig.height=7}
 aheatmap((v2$E[v2$genes$SYMBOL %in% gene.markers$gene,
               c(16:21, 31:33)]),
          annCol = list(Treatment=targets.new$Treatment[c(16:21, 31:33)]),
@@ -329,7 +331,6 @@ Heatmap showing Gene Set profiles in bulk RNA-seq samples of cultured UE and Sta
 ```{r, fig.width=7, fig.height=7}
 aheatmap(t(scores.all)[16:27, c(16:21, 31:33)],
          annCol = list(Treatment=targets.new$Treatment[c(16:21, 31:33)]),
-        
          annColors = list(Treatment = treatment), 
          fontsize = 13, 
          border = TRUE, 
@@ -338,7 +339,9 @@ aheatmap(t(scores.all)[16:27, c(16:21, 31:33)],
 ```
 
 
-
+```{r}
+sessionInfo()
+```
 
 
 

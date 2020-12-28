@@ -9,15 +9,11 @@ editor_options:
 
 ## Introduction
 
-This code relates to Figure 1 of Howden, Wilson et al. 2020 <br>
+One of the key analyses in this manuscript was the thorough analysis of the week 16 human fetal kidney datasets first published in our collaborators's paper [Holloway et al. 2020](https://pubmed.ncbi.nlm.nih.gov/32841595/). Figure 1 and Supplementary Figure 1 show the analysis in the manuscript, the code used to generate that analysis is more fully described in this document.
 <br>
-Figure 1 described the annotation of a human fetal kidney dataset published with a full annotation for the first time in this manuscript. <br>
 <br>
-There were two samples: **96 days old MALE** and **108 days old FEMALE**. These were originally generated in the Spence lab by Emily Halloway, with the original publication focussing on the endothelium which can be seen in [Holloway et al. 2020](https://www.sciencedirect.com/science/article/abs/pii/S1534580720305980) <br>
+The analysis is performed initially following the [Satija Lab protocol](https://satijalab.org/seurat/v3.0/pancreas_integration_label_transfer.html) <br>
 <br>
-The analysis is performed largely following the [Satija Lab protocol](https://satijalab.org/seurat/v3.0/pancreas_integration_label_transfer.html) <br>
-<br>
-
 
 ```{r setup}
 library(tidyverse)
@@ -87,7 +83,6 @@ The Ureteric Epithelium is the epithelial structure that the nephron plumbs into
 
 To identify these populations we can isolate the Ureteric cluster and reanalyse these in the same way we did the whole dataset.
 
-Isolate and recluster the DN and UE cell types
 
 ```{r}
 #uedn <- hfk[, hfk$Identity %in% c("N.DST", "N.DCT", "N.CS", "U.Tip", "U.Cortical", 
@@ -118,5 +113,9 @@ load(here::here("data/UE_DN_Subset.rda"))
 ```{r}
 DimPlot(ue.dn, group.by = "Identity", label = T, repel = T) +
   theme(legend.position = "none")
+```
+
+```{r}
+sessionInfo()
 ```
 
