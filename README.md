@@ -48,9 +48,9 @@ This website was built using the amazing [workflowr][] package.
 [workflowr project]: https://kidneyregeneration.github.io/HowdenWilson2020/
 [workflowr]: https://github.com/jdblischak/workflowr
 [Howden, Wilson et al. 2020]: https://github.com/KidneyRegeneration/HowdenWilson2020
-[Sara E. Howden]: sara.howden@mcri.edu.au
+[Sara E. Howden]: https://www.mcri.edu.au/users/sara-howden
 [Sean B. Wilson]: https://github.com/sbwilson91
-[Melissa H. Little]: melissa.little@mcri.edu.au
+[Melissa H. Little]: https://www.mcri.edu.au/users/melissa-little
 [GSE161255]: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE161255
 [E-MTAB-9083]: https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-9083/
 [Holloway et al. 2020]: https://pubmed.ncbi.nlm.nih.gov/32841595/
