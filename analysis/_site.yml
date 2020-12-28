@@ -18,7 +18,7 @@ navbar:
   right:
   - icon: fa-github
     text: Source code
-    href: https://github.com/sbwilson91/HowdenWilson2020
+    href: https://github.com/KidneyRegeneration/HowdenWilson2020
 output:
   workflowr::wflow_html:
     toc: yes
