@@ -52,7 +52,7 @@ This website was built using the amazing [workflowr][] package.
 
 [workflowr project]: https://kidneyregeneration.github.io/HowdenWilson2020/
 [workflowr]: https://github.com/jdblischak/workflowr
-[Howden, Wilson et al. 2020]: https://github.com/KidneyRegeneration/HowdenWilson2020
+[Howden, Wilson et al. 2020]: https://doi.org/10.1016/j.stem.2020.12.001
 [Sara E. Howden]: sara.howden@mcri.edu.au
 [Sean B. Wilson]: https://github.com/sbwilson91
 [Melissa H. Little]: melissa.little@mcri.edu.au
