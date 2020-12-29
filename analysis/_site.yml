@@ -7,8 +7,6 @@ navbar:
     href: index.html
   - text: About
     href: about.html
-  - text: License
-    href: license.html
   - text: HFK
     href: HFK_Annotation.html
   - text: Bulk
